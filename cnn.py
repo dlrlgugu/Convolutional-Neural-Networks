@@ -101,13 +101,124 @@ print("cache_conv[0][1][2][3] =", cache_conv[0][1][2][3])
 
 
 
+def pool_forward(A_prev, hparameters, mode = "max"):
+    (m, n_H_prev, n_W_prev, n_C_prev) = A_prev.shape
+    f = hparameters["f"]
+    stride = hparameters["stride"]
+
+    n_H = int(1 + (n_H_prev - f) / stride)
+    n_W = int(1 + (n_W_prev - f) / stride)
+    n_C = n_C_prev
+
+    A = np.zeros((m, n_H, n_W, n_C))
+
+    for i in range(m):                         # loop over the training examples
+        for h in range(n_H):                     # loop on the vertical axis of the output volume
+            for w in range(n_W):                 # loop on the horizontal axis of the output volume
+                for c in range (n_C):            # loop over the channels of the output volume
+                    
+                    # Find the corners of the current "slice" (≈4 lines)
+                    vert_start = h * stride
+                    vert_end = vert_start + f
+                    horiz_start = w * stride
+                    horiz_end = horiz_start + f
+                    
+                    # Use the corners to define the current slice 
+                    # on the ith training example of A_prev, channel c. (≈1 line)
+                    a_prev_slice = A_prev[i,vert_start:vert_end,horiz_start:horiz_end,c]
+                    
+                    # Compute the pooling operation on the slice. Use an if statment to differentiate the modes. Use np.max/np.mean.
+                    if mode == "max":
+                        A[i, h, w, c] = np.max(a_prev_slice)
+                    elif mode == "average":
+                        A[i, h, w, c] = np.mean(a_prev_slice)
+    
+    # Store the input and hparameters in "cache" for pool_backward()
+    cache = (A_prev, hparameters)
+    
+    # Making sure your output shape is correct
+    assert(A.shape == (m, n_H, n_W, n_C))
+    
+    return A, cache
+"""    
+np.random.seed(1)
+A_prev = np.random.randn(2, 4, 4, 3)
+hparameters = {"stride" : 2, "f": 3}
+
+A, cache = pool_forward(A_prev, hparameters)
+print("mode = max")
+print("A =", A)
+print()
+A, cache = pool_forward(A_prev, hparameters, mode = "average")
+print("mode = average")
+print("A =", A)
+"""
 
 
+def conv_backward(dZ, cache):
+    # Retrieve information from "cache"
+    (A_prev, W, b, hparameters) = cache
+    
+    # Retrieve dimensions from A_prev's shape
+    (m, n_H_prev, n_W_prev, n_C_prev) = A_prev.shape
+    
+    # Retrieve dimensions from W's shape
+    (f, f, n_C_prev, n_C) = W.shape
+    
+    # Retrieve information from "hparameters"
+    stride = hparameters["stride"]
+    pad = hparameters["pad"]
+    
+    # Retrieve dimensions from dZ's shape
+    (m, n_H, n_W, n_C) = dZ.shape
+    
+    # Initialize dA_prev, dW, db with the correct shapes
+    dA_prev = np.zeros((m, n_H_prev, n_W_prev, n_C_prev))                           
+    dW = np.zeros((f, f, n_C_prev, n_C))
+    db = np.zeros((1, 1, 1, n_C))
+
+    # Pad A_prev and dA_prev
+    A_prev_pad = zero_pad(A_prev,pad)
+    dA_prev_pad = zero_pad(dA_prev,pad)
+    
+    for i in range(m):                       # loop over the training examples
+        
+        # select ith training example from A_prev_pad and dA_prev_pad
+        a_prev_pad = A_prev_pad[i]
+        da_prev_pad = dA_prev_pad[i]
+        
+        for h in range(n_H):                   # loop over vertical axis of the output volume
+            for w in range(n_W):               # loop over horizontal axis of the output volume
+                for c in range(n_C):           # loop over the channels of the output volume
+                    
+                    # Find the corners of the current "slice"
+                    vert_start = h #* stride
+                    vert_end = vert_start + f
+                    horiz_start = w #* stride
+                    horiz_end = horiz_start + f
+                    
+                    # Use the corners to define the slice from a_prev_pad
+                    a_slice = a_prev_pad[vert_start:vert_end,horiz_start:horiz_end,:]
+
+                    # Update gradients for the window and the filter's parameters using the code formulas given above
+                    da_prev_pad[vert_start:vert_end, horiz_start:horiz_end, :] += W[:,:,:,c] * dZ[i, h, w, c]
+                    dW[:,:,:,c] += a_slice * dZ[i, h, w, c]
+                    db[:,:,:,c] += dZ[i, h, w, c]
+                    
+        # Set the ith training example's dA_prev to the unpaded da_prev_pad (Hint: use X[pad:-pad, pad:-pad, :])
+        dA_prev[i, :, :, :] = dA_prev_pad[0,pad,pad,0]
+    
+    # Making sure your output shape is correct
+    assert(dA_prev.shape == (m, n_H_prev, n_W_prev, n_C_prev))
+    
+    return dA_prev, dW, db
 
 
-
-
-
+np.random.seed(1)
+dA, dW, db = conv_backward(Z, cache_conv)
+print("dA_mean =", np.mean(dA))
+print("dW_mean =", np.mean(dW))
+print("db_mean =", np.mean(db))
 
 
 
