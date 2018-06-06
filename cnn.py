@@ -58,9 +58,9 @@ def conv_forward(A_prev, W, b, hparameters):
         #print(a_prev_pad.shape)#(8, 8, 3)
         #print(a_prev_pad)
         
-        for h in range(n_H_prev):      # loop over vertical axis of the output volume
-            for w in range(n_W_prev):  # loop over horizontal axis of the output volume
-                for c in range(n_C_prev):  # loop over channels (= #filters) of the output volume
+        for h in range(n_H):      # loop over vertical axis of the output volume
+            for w in range(n_W):  # loop over horizontal axis of the output volume
+                for c in range(n_C):  # loop over channels (= #filters) of the output volume
                     
                     # Find the corners of the current "slice" (≈4 lines)
                     #a_prev_pad
@@ -156,7 +156,7 @@ print("A =", A)
 
 
 def conv_backward(dZ, cache):
-    # Retrieve information from "cache"
+     # Retrieve information from "cache"
     (A_prev, W, b, hparameters) = cache
     
     # Retrieve dimensions from A_prev's shape
@@ -206,7 +206,8 @@ def conv_backward(dZ, cache):
                     db[:,:,:,c] += dZ[i, h, w, c]
                     
         # Set the ith training example's dA_prev to the unpaded da_prev_pad (Hint: use X[pad:-pad, pad:-pad, :])
-        dA_prev[i, :, :, :] = dA_prev_pad[0,pad,pad,0]
+        dA_prev[i, :, :, :] = da_prev_pad[pad:-pad, pad:-pad, :]
+    ### END CODE HERE ###
     
     # Making sure your output shape is correct
     assert(dA_prev.shape == (m, n_H_prev, n_W_prev, n_C_prev))
