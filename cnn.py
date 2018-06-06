@@ -233,5 +233,40 @@ mask = create_mask_from_window(x)
 print('x = ', x)
 print("mask = ", mask)
 
+def distribute_value(dz, shape):
+    (n_H, n_W) = shape
+    
+    # Compute the value to distribute on the matrix (≈1 line)
+    average = dz / (n_H+n_W)
+    # Create a matrix where every entry is the "average" value (≈1 line)
+    a = np.ones(shape) * average
+
+    return a
+
+a = distribute_value(2, (2,2))
+print('distributed value =', a)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
